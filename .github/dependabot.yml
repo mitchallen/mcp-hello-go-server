@@ -1,0 +1,30 @@
+version: 2
+# Keeps the image and its dependencies patched automatically. This is the
+# "stay up to date" half of vulnerability management — image-scan.yml and
+# govulncheck.yml detect vulns, Dependabot opens the PRs that fix them. Low-risk
+# updates (github-actions; gomod/docker minor+patch) are auto-merged once CI
+# passes — see .github/workflows/dependabot-auto-merge.yml.
+updates:
+  # Go dependencies (go.mod / go.sum).
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"
+
+  # Base images in the Dockerfile (golang builder + chainguard/static runtime).
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "docker"
+
+  # GitHub Actions used by the workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"

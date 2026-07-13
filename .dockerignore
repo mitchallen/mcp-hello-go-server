@@ -1,0 +1,12 @@
+# Ship only what the build needs (go.mod/go.sum + .go source). Everything else
+# is excluded so the build context stays small and reproducible.
+.git
+.gitignore
+.github
+.dockerignore
+Dockerfile
+Makefile
+.claude
+.DS_Store
+*.md
+*_test.go

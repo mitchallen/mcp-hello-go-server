@@ -1,0 +1,26 @@
+name: govulncheck
+# Scan Go dependencies AND the standard library used by the binary against the
+# Go vulnerability database (pkg.go.dev/vuln). Trivy's image scan covers the OS
+# layer; govulncheck is call-graph aware and covers the code actually reachable —
+# the two together are the full "are we shipping known vulns?" gate.
+#
+# Runs with the newest stable Go so a stdlib CVE fixed in a newer patch doesn't
+# fail the build; a daily run catches advisories published against unchanged code.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '23 6 * * *'
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: stable
+          go-package: ./...

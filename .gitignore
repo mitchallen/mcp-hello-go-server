@@ -1,0 +1,25 @@
+# Go build output
+/mcp-hello-go-server
+/dist/
+*.exe
+*.test
+*.out
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+
+# dotenv
+.env
+.env.*.local
