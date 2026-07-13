@@ -21,7 +21,7 @@ import (
 // version is the server version reported in the MCP handshake and by
 // server_info. Overridable at build time with
 // -ldflags "-X main.version=X.Y.Z"; make release keeps this literal in sync.
-var version = "0.1.0"
+var version = "0.1.1"
 
 // startTime is captured at process start for the uptime readout.
 var startTime = time.Now()
