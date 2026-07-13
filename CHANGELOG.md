@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-13
+
+### Changed
+
+- Clarify the stdio-over-Docker setup in the README: the published image is all
+  you need (nothing to build or install), and pulling it up front avoids the
+  first-run download racing an MCP client's connect/startup timeout.
+
+### Dependencies
+
+- Bump `actions/checkout` from 5 to 7 (#1).
+
 ## [0.1.0] - 2026-07-13
 
 ### Added
@@ -38,5 +50,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A Dependabot config opening weekly update PRs for Go modules, the Docker base
   image, and GitHub Actions, with low-risk updates auto-merged once CI passes.
 
-[unreleased]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mitchallen/mcp-hello-go-server/releases/tag/v0.1.0
