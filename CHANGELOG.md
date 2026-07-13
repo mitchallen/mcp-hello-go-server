@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Verified
+
+- Confirmed the **stdio** transport works against the published Docker image
+  (`docker run -i --rm -e MCP_TRANSPORT=stdio …`): the MCP `initialize` handshake
+  and a `greet` tool round trip both succeed over stdio.
+
 ## [0.1.1] - 2026-07-13
 
 ### Changed
