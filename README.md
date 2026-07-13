@@ -201,6 +201,21 @@ The image is published to two registries:
 
 ### Option A — Docker image, client launches it (stdio)
 
+This is the simplest setup: **there's nothing to build or install** — just the
+published image. Strictly speaking you don't even have to pull it first —
+`docker run` auto-pulls any image missing from the local cache (standard Docker
+behavior, not client-specific) the first time the container launches. But that
+first launch then blocks on the download, which can race an MCP client's
+connect/startup timeout and make the server look like it failed to connect. So
+pull it up front once:
+
+```sh
+docker pull ghcr.io/mitchallen/mcp-hello-go-server:latest
+```
+
+After that it's cached locally and every session starts instantly from the local
+copy.
+
 The client starts a fresh container per session and talks to it over stdio. Use
 `-i` (keep stdin open) and force the stdio transport, since the image defaults to
 HTTP:
