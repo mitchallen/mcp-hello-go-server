@@ -50,11 +50,27 @@ Single `package main` (a small binary), split by concern:
   the non-root `nonroot` user (uid 65532). `make scan` should report 0
   CRITICAL/HIGH.
 - **Releasing:** `make release` (`BUMP=patch|minor|major`, default patch) bumps
-  `var version` in `server.go`, commits, tags `vX.Y.Z`, pushes, and creates the
-  matching GitHub Release from the `CHANGELOG.md` section. The tag triggers the
-  GHCR + Docker Hub publish workflows. It refuses to run unless the tree is
-  clean, you're on `main`, and `CHANGELOG.md` already has the new version's
-  section.
+  `var version` in `server.go` and opens a **`release/vX.Y.Z` PR** carrying the
+  bump plus the `CHANGELOG.md` section, waits for main's required checks, merges
+  it, then tags `vX.Y.Z` — the tag triggers the GHCR + Docker Hub publish
+  workflows — and creates the matching GitHub Release from that version's
+  `CHANGELOG.md` section. It refuses to run unless the tree is clean (apart from
+  `CHANGELOG.md`), you're on `main`, and `CHANGELOG.md` already has the new
+  version's section.
+  - Write the new version's `CHANGELOG.md` entry (Keep a Changelog format, top
+    of the file) **before** running it — the release notes are only as good as
+    that section, and the run aborts if the section is missing. You may leave
+    that edit **uncommitted**; it rides along in the release PR. Everything
+    *else* must be committed first.
+  - It **must not** go back to pushing the bump straight to main. A direct push
+    builds the tag from a commit that never ran `test`/`scan`/`govulncheck`.
+  - The target is **re-runnable**: if a run stops (checks failed, merge
+    declined), re-running resumes the existing `release/vX.Y.Z` branch and skips
+    straight to whatever step is left, rather than bumping the version a second
+    time. It also won't re-tag or re-create an existing Release.
+- **Branch protection on `main`:** required checks are `test`, `scan`, and
+  `govulncheck`. Because `scan` is required, a newly disclosed *fixable*
+  CRITICAL/HIGH blocks merges until the bump that clears it lands.
 
 ## Tools
 

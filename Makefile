@@ -31,7 +31,7 @@ help:
 	@echo "  make vulncheck    - Scan Go dependencies with govulncheck"
 	@echo "  make check        - fmt check + vet + test + vulncheck (the CI gate)"
 	@echo "  make tidy         - go mod tidy"
-	@echo "  make release      - Bump version (BUMP=patch|minor|major), commit, tag, and push"
+	@echo "  make release      - Bump version (BUMP=patch|minor|major) via a release PR, then tag"
 	@echo "  make docker-build - Build the Docker image locally"
 	@echo "  make docker-run   - Run the locally-built image over HTTP on port 8000"
 	@echo "  make docker-pull  - Pull the published image (REGISTRY, TAG)"
@@ -89,14 +89,28 @@ check:
 tidy:
 	go mod tidy
 
-# Bump the version literal in server.go, commit, tag, and push. The pushed v*
-# tag triggers the publish workflows (GHCR + Docker Hub). Override with
-# BUMP=minor or BUMP=major.
+# Bump the version literal in server.go and release through a PR, so the tag is
+# always built from a commit that passed CI. Opens a release/vX.Y.Z PR carrying
+# the bump plus that version's CHANGELOG section, waits for the required checks
+# (test, scan, govulncheck), merges it, tags vX.Y.Z — the tag triggers the GHCR
+# and Docker Hub publish workflows — then creates the matching GitHub Release
+# from the CHANGELOG section. Override with BUMP=minor or BUMP=major.
+#
+# Write the new version's CHANGELOG.md section BEFORE running; the release notes
+# are only as good as that section, and the run aborts if it is missing. That one
+# edit may be left uncommitted — it rides along in the release PR. Everything
+# else must be committed first.
+#
+# Re-runnable: if a run stops (checks failed, merge declined), re-running resumes
+# the existing release/vX.Y.Z branch and skips to whatever step is left, rather
+# than bumping the version a second time. It won't re-tag or re-create a Release.
 .PHONY: release
 release:
-	@test -z "$$(git status --porcelain)" || { echo "Working tree is not clean; commit or stash first."; exit 1; }
+	@command -v gh >/dev/null || { echo "gh (GitHub CLI) is required — https://cli.github.com/"; exit 1; }
+	@test -z "$$(git status --porcelain -- ':!CHANGELOG.md')" || { echo "Working tree has changes other than CHANGELOG.md; commit or stash them first."; exit 1; }
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	test "$$branch" = "main" || { echo "Refusing to release from '$$branch'; switch to main."; exit 1; }
+	@git fetch --quiet origin
 	@cur=$(VERSION); \
 	major=$$(echo $$cur | cut -d. -f1); minor=$$(echo $$cur | cut -d. -f2); patch=$$(echo $$cur | cut -d. -f3); \
 	case "$(BUMP)" in \
@@ -105,20 +119,72 @@ release:
 	  patch) patch=$$((patch+1)) ;; \
 	  *) echo "BUMP must be patch, minor, or major"; exit 1 ;; \
 	esac; \
-	next=$$major.$$minor.$$patch; \
-	grep -qE "^## \[$$next\]" CHANGELOG.md || { echo "CHANGELOG.md has no entry for v$$next — add a '## [$$next] - YYYY-MM-DD' section (Keep a Changelog format, top of the file) before releasing."; exit 1; }; \
-	echo "Bumping version $$cur -> $$next..."; \
-	sed -i.bak "s/^var version = \"[0-9.]*\"/var version = \"$$next\"/" server.go && rm -f server.go.bak; \
-	echo "Releasing v$$next..."; \
-	git add server.go; \
-	git commit -m "Release v$$next"; \
-	git tag "v$$next"; \
-	git push origin main; \
-	git push origin "v$$next"; \
-	echo "Creating GitHub release v$$next..."; \
-	notes=$$(awk -v v="$$next" '$$0 ~ "^## \\[" v "\\]" {flag=1; next} flag && /^## \[/ {exit} flag {print}' CHANGELOG.md); \
-	printf '%s\n' "$$notes" | gh release create "v$$next" --title "v$$next" --notes-file - ; \
-	echo "Pushed v$$next and created its GitHub release — the publish workflows will build and push the images."
+	version=$$major.$$minor.$$patch; \
+	rel="release/v$$version"; \
+	state=$$(gh pr list --head "$$rel" --state all --limit 1 --json state --jq '.[0].state // empty'); \
+	url=$$(gh pr list --head "$$rel" --state all --limit 1 --json url --jq '.[0].url // empty'); \
+	if [ "$$state" = "MERGED" ]; then \
+		echo "Release PR for v$$version already merged ($$url) — resuming at the tag."; \
+	else \
+		if git ls-remote --exit-code --heads origin "$$rel" >/dev/null 2>&1; then \
+			git show "origin/$$rel:CHANGELOG.md" | grep -qE "^## \[$$version\]" || { \
+				echo "$$rel exists but its CHANGELOG.md has no '## [$$version]' section — add it on that branch and push."; exit 1; }; \
+			echo "Resuming existing branch $$rel (no second version bump)."; \
+			git checkout "$$rel" && git pull --ff-only; \
+		elif git rev-parse -q --verify "refs/heads/$$rel" >/dev/null; then \
+			echo "Resuming local-only branch $$rel — the push never landed (no second version bump)."; \
+			git checkout "$$rel"; \
+			grep -qE "^## \[$$version\]" CHANGELOG.md || { \
+				echo "$$rel exists locally but its CHANGELOG.md has no '## [$$version]' section — add it on that branch, commit, then re-run."; exit 1; }; \
+			git push -u origin "$$rel"; \
+		else \
+			grep -qE "^## \[$$version\]" CHANGELOG.md || { \
+				echo "CHANGELOG.md has no entry for v$$version — add a '## [$$version] - YYYY-MM-DD' section (Keep a Changelog format, top of the file) before releasing."; exit 1; }; \
+			echo "Preparing $$rel (bumping $$cur -> $$version) ..."; \
+			git checkout -b "$$rel"; \
+			sed -i.bak "s/^var version = \"[0-9.]*\"/var version = \"$$version\"/" server.go && rm -f server.go.bak; \
+			git add server.go CHANGELOG.md; \
+			git commit -m "Release v$$version"; \
+			git push -u origin "$$rel"; \
+		fi; \
+		if [ -z "$$url" ]; then \
+			url=$$(gh pr create --base main --head "$$rel" --title "Release v$$version" \
+				--body "Version bump + CHANGELOG section for v$$version, opened by \`make release\`. Merging this tags v$$version, which triggers the GHCR and Docker Hub publishes."); \
+		fi; \
+		echo "Release PR: $$url"; \
+		git checkout main; \
+		echo "Waiting for the required checks (test, scan, govulncheck)..."; \
+		tries=0; \
+		until [ -n "$$(gh pr checks "$$url" --required 2>/dev/null)" ]; do \
+			tries=$$((tries + 1)); \
+			if [ "$$tries" -ge 30 ]; then \
+				echo "No checks appeared on $$url after 5 minutes — nothing tagged."; exit 1; \
+			fi; \
+			sleep 10; \
+		done; \
+		gh pr checks "$$url" --watch --required --fail-fast --interval 15 || { \
+			echo ""; \
+			echo "Required checks did not pass — nothing was tagged and v$$version is NOT released."; \
+			echo "Fix it on $$rel, push, then re-run 'make release' to resume."; \
+			exit 1; }; \
+		gh pr merge "$$url" --squash --delete-branch; \
+	fi; \
+	git checkout main; \
+	git pull --ff-only; \
+	if git rev-parse -q --verify "refs/tags/v$$version" >/dev/null; then \
+		echo "Tag v$$version already exists locally — reusing it."; \
+	else \
+		git tag "v$$version"; \
+	fi; \
+	git push origin "v$$version"; \
+	if gh release view "v$$version" >/dev/null 2>&1; then \
+		echo "GitHub release v$$version already exists — leaving it as is."; \
+	else \
+		echo "Creating GitHub release v$$version..."; \
+		notes=$$(awk -v v="$$version" '$$0 ~ "^## \\[" v "\\]" {flag=1; next} flag && /^## \[/ {exit} flag {print}' CHANGELOG.md); \
+		printf '%s\n' "$$notes" | gh release create "v$$version" --title "v$$version" --notes-file - ; \
+	fi; \
+	echo "Released v$$version from a checked commit — the publish workflows will build and push the images."
 
 .PHONY: docker-build
 docker-build:

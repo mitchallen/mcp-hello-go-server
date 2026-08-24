@@ -363,16 +363,24 @@ Workflows live in `.github/workflows/`:
   `DOCKERHUB_TOKEN` repository secrets.
 
 To cut a release, use the `release` target — it bumps `var version` in
-`server.go`, commits, tags, pushes, and creates the GitHub Release from the
-`CHANGELOG.md` section, which triggers both publish workflows:
+`server.go` and opens a `release/vX.Y.Z` PR carrying that bump plus the
+`CHANGELOG.md` section, waits for the required checks, merges it, then tags and
+creates the GitHub Release from the `CHANGELOG.md` section, which triggers both
+publish workflows. Releasing through a PR keeps the tag on a commit that
+actually passed CI:
 
 ```sh
 make release              # patch bump (default)
 make release BUMP=minor   # or minor / major
 ```
 
-The target refuses to run unless the working tree is clean, you're on `main`, and
-`CHANGELOG.md` already has a `## [X.Y.Z]` section for the new version.
+The target refuses to run unless the working tree is clean (apart from
+`CHANGELOG.md`, whose new section may be left uncommitted to ride along in the
+release PR), you're on `main`, and `CHANGELOG.md` already has a `## [X.Y.Z]`
+section for the new version.
+
+It is re-runnable: if a run stops because the checks failed, re-running resumes
+the existing `release/vX.Y.Z` branch rather than bumping the version again.
 
 ### Docker Hub secrets (one-time setup)
 
