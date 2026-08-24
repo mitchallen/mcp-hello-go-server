@@ -69,8 +69,16 @@ Single `package main` (a small binary), split by concern:
     straight to whatever step is left, rather than bumping the version a second
     time. It also won't re-tag or re-create an existing Release.
 - **Branch protection on `main`:** required checks are `test`, `scan`, and
-  `govulncheck`. Because `scan` is required, a newly disclosed *fixable*
-  CRITICAL/HIGH blocks merges until the bump that clears it lands.
+  `govulncheck`, with **`enforce_admins` on** — nothing reaches main without
+  them, including releases. Because `scan` is required, a newly disclosed
+  *fixable* CRITICAL/HIGH blocks merges until the bump that clears it lands;
+  that's the intended behavior, and Dependabot's `gomod` ecosystem opens that
+  bump.
+- **Everything lands via PR.** With admins enforced, a direct push to `main` is
+  refused. `make release` opens its own release PR; for anything else — a docs
+  fix, a one-line tweak — use **`make docs-pr m="docs: ..."`**, which branches
+  off main, commits the working tree, pushes, and opens the PR. Don't hand-roll
+  a branch when that target does it.
 
 ## Tools
 

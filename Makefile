@@ -32,6 +32,7 @@ help:
 	@echo "  make check        - fmt check + vet + test + vulncheck (the CI gate)"
 	@echo "  make tidy         - go mod tidy"
 	@echo "  make release      - Bump version (BUMP=patch|minor|major) via a release PR, then tag"
+	@echo "  make docs-pr      - Open the working-tree changes as a PR (m=\"msg\" [b=branch])"
 	@echo "  make docker-build - Build the Docker image locally"
 	@echo "  make docker-run   - Run the locally-built image over HTTP on port 8000"
 	@echo "  make docker-pull  - Pull the published image (REGISTRY, TAG)"
@@ -185,6 +186,33 @@ release:
 		printf '%s\n' "$$notes" | gh release create "v$$version" --title "v$$version" --notes-file - ; \
 	fi; \
 	echo "Released v$$version from a checked commit — the publish workflows will build and push the images."
+
+# Open a docs (or any small) change as a PR instead of pushing to main.
+# Branches off main, commits the current working-tree changes, pushes, and opens
+# a PR via gh so the change lands through CI (test + scan + govulncheck) review.
+# Nothing reaches main any other way — protection enforces admins, and
+# `make release` opens its own release PR — so this is the path for everything
+# non-release.
+# Usage:
+#   make docs-pr m="docs: fix the stdio transport note"
+#   make docs-pr m="docs: ..." b=docs/custom-branch-name
+.PHONY: docs-pr
+docs-pr:
+	@test -n "$(m)" || { echo 'Usage: make docs-pr m="docs: <what changed>" [b=branch-name]'; exit 1; }
+	@test -n "$$(git status --porcelain)" || { echo "No changes to open a PR for — edit something first."; exit 1; }
+	@command -v gh >/dev/null || { echo "gh (GitHub CLI) is required — https://cli.github.com/"; exit 1; }
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	test "$$branch" = "main" || { echo "Run from main (currently on '$$branch') so the PR branches from a clean base."; exit 1; }
+	@slug=$$(printf '%s' "$(m)" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$$//' | cut -c1-40); \
+	branch="$(b)"; [ -n "$$branch" ] || branch="docs/$$slug"; \
+	echo "Creating branch $$branch..."; \
+	git checkout -b "$$branch"; \
+	git add -A; \
+	printf '%s\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n' "$(m)" | git commit -F -; \
+	git push -u origin "$$branch"; \
+	gh pr create --base main --head "$$branch" --title "$(m)" \
+		--body "Docs/small change opened via \`make docs-pr\`. Merge after CI (test + scan + govulncheck) is green."; \
+	echo "PR opened for $$branch — merge it once CI passes, then delete the branch."
 
 .PHONY: docker-build
 docker-build:
