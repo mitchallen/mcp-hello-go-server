@@ -21,10 +21,13 @@ jobs:
         uses: dependabot/fetch-metadata@v3
 
       - name: Enable auto-merge for in-scope updates
+        # NB: these are fetch-metadata's ecosystem names, which are not the
+        # same vocabulary as dependabot.yml's package-ecosystem keys — Go is
+        # `gomod` in the config but `go_modules` here.
         if: >-
           startsWith(steps.metadata.outputs.package-ecosystem, 'github')
           || ( (steps.metadata.outputs.package-ecosystem == 'docker'
-          || steps.metadata.outputs.package-ecosystem == 'gomod')
+          || steps.metadata.outputs.package-ecosystem == 'go_modules')
           && (steps.metadata.outputs.update-type == 'version-update:semver-minor'
           || steps.metadata.outputs.update-type == 'version-update:semver-patch') )
         run: gh pr merge --auto --squash "$PR_URL"
