@@ -3,7 +3,7 @@
 # so a multi-arch buildx build never pays for QEMU emulation — the arm64 binary
 # is cross-compiled natively on the amd64 builder. CGO_ENABLED=0 yields a fully
 # static binary that runs on an empty base.
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 WORKDIR /app
 
 # Download dependencies first as a cached layer (only go.mod/go.sum change → reuse).
