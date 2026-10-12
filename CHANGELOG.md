@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-12
+
+### Changed
+
+- `github.com/modelcontextprotocol/go-sdk` 1.6.1 → 1.8.0 (#3, #8).
+- Build image `golang:1.26-alpine` → `golang:1.27-alpine` (#4). The runtime
+  image is unchanged (`cgr.dev/chainguard/static`).
+- Releases now go through a `release/vX.Y.Z` PR so the tagged commit has
+  passed the required checks (#6), with a `make docs-pr` target for
+  non-release changes (#7).
+- CI: Dependabot auto-merge matches the `go_modules` ecosystem name (#5);
+  `actions/setup-go` 6 → 7 (#2).
+- README: Docker Hub, GHCR, publish and license badges.
+
 ### Verified
 
 - Confirmed the **stdio** transport works against the published Docker image
