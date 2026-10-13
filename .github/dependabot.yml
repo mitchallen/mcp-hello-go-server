@@ -4,12 +4,25 @@ version: 2
 # govulncheck.yml detect vulns, Dependabot opens the PRs that fix them. Low-risk
 # updates (github-actions; gomod/docker minor+patch) are auto-merged once CI
 # passes — see .github/workflows/dependabot-auto-merge.yml.
+#
+# Noise control: each ecosystem batches its minor+patch bumps into one grouped
+# PR, and `cooldown` skips releases younger than 7 days, so fast-moving deps
+# land as one bump to the latest instead of a PR per release. Majors are
+# deliberately left out of the groups so they still arrive as individual PRs,
+# which auto-merge still leaves for review on the non-Actions ecosystems
+# (fetch-metadata reports a grouped PR's highest update-type). Cooldown does not
+# delay security updates.
 updates:
   # Go dependencies (go.mod / go.sum).
   - package-ecosystem: gomod
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      go-minor-patch:
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps"
 
@@ -18,6 +31,11 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      docker-minor-patch:
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "docker"
 
@@ -26,5 +44,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "ci"
