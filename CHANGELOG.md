@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-13
+
 ### Changed
 
 - **Fewer Dependabot PRs.** Each ecosystem (`gomod`, `docker`, `github-actions`)
@@ -79,6 +81,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A Dependabot config opening weekly update PRs for Go modules, the Docker base
   image, and GitHub Actions, with low-risk updates auto-merged once CI passes.
 
-[unreleased]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/mitchallen/mcp-hello-go-server/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mitchallen/mcp-hello-go-server/releases/tag/v0.1.0
