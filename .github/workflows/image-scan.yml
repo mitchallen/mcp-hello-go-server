@@ -23,6 +23,29 @@ jobs:
       - name: Build image for scanning
         run: docker buildx build --load -t mcp-hello-go-server:scan .
 
+      # Prove the image starts and serves MCP, not just that it builds: run it
+      # and send an MCP initialize through the Makefile's docker-smoke target
+      # (the same check `make docker-test` runs against the published image).
+      - name: Smoke test the container
+        run: |
+          docker run -d --name mcp-hello-go -p 8000:8000 mcp-hello-go-server:scan
+          # Wait for the server to accept connections, failing loudly if it
+          # never does (a crash-looping container would otherwise just hang).
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null --max-time 2 http://localhost:8000/mcp; then break; fi
+            if [ "$i" = "30" ]; then
+              echo "container never became ready; logs:" >&2
+              docker logs mcp-hello-go >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          make docker-smoke CONTAINER=mcp-hello-go HTTP_PORT=8000
+
+      - name: Container logs
+        if: always()
+        run: docker logs mcp-hello-go || true
+
       # Gate: fail the build on FIXABLE critical/high vulns. ignore-unfixed
       # means an upstream CVE with no patch yet won't wedge every build.
       - name: Trivy scan (fail on fixable CRITICAL/HIGH)

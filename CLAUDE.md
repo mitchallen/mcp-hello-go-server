@@ -74,6 +74,11 @@ Single `package main` (a small binary), split by concern:
   *fixable* CRITICAL/HIGH blocks merges until the bump that clears it lands;
   that's the intended behavior, and Dependabot's `gomod` ecosystem opens that
   bump.
+- **The `scan` check also smoke-tests the container:** `image-scan.yml` runs
+  the freshly built image and calls `make docker-smoke` against it (an MCP
+  `initialize` that must return this server's name), so an image that builds
+  but crashes at startup fails the PR. `make docker-test` runs the same check
+  against the *published* image instead.
 - **Everything lands via PR.** With admins enforced, a direct push to `main` is
   refused. `make release` opens its own release PR; for anything else — a docs
   fix, a one-line tweak — use **`make docs-pr m="docs: ..."`**, which branches
