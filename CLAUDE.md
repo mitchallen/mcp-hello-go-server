@@ -139,13 +139,13 @@ Two complementary gates, both in CI and reproducible locally:
 - **Release flow:** `make release` opens a `release/vX.Y.Z` PR (version bump +
   `CHANGELOG.md` section), waits for the required checks and merges it, then
   tags. `enforce_admins` is on, so there is no direct-push path.
-- **Publish time:** ~1–2 min (v0.1.1–v0.1.3). Compare against `gh run list
-  --workflow publish.yml` before treating a slow run as hung.
-- **Verify what shipped, not just the green runs.** `docker buildx imagetools
-  inspect <image>:X.Y.Z` on both registries should list `linux/amd64` and
-  `linux/arm64`. Then `make docker-test TAG=X.Y.Z` pulls the *published* image
-  and runs the MCP `initialize` smoke check, and the reply's `serverInfo` should
-  carry the released version (`"version":"X.Y.Z"`).
+- **Publish time:** ~1–2 min (v0.1.1–v0.1.3). Compare against
+  `gh run list --workflow publish.yml` before treating a slow run as hung.
+- **Verify what shipped, not just the green runs.**
+  `docker buildx imagetools inspect <image>:X.Y.Z` on both registries should
+  list `linux/amd64` and `linux/arm64`. Then `make docker-test TAG=X.Y.Z` pulls
+  the *published* image and runs the MCP `initialize` smoke check, and the
+  reply's `serverInfo` should carry the released version (`"version":"X.Y.Z"`).
 - **The required `scan` check now starts the container** (see above), so a PR
   whose image builds but won't serve MCP is caught before release, not after.
 - **Sibling conventions differ** — release flows, merge styles and Dependabot
